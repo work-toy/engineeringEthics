@@ -1,0 +1,14 @@
+# Python / Node 临时产物
+__pycache__/
+*.pyc
+node_modules/
+
+# 可再生成的中间音频（由 score.mjs / narration/gen.py 重建）
+didi-case-video/audio/*.wav
+didi-case-video/narration/*.mp3
+didi-case-video/narration/*.wav
+didi-case-video/narration/concat.txt
+
+# 编辑器工作区与审片材料（可重建，体积大）
+didi-case-video/.showreel-editor/
+didi-case-video/qa/

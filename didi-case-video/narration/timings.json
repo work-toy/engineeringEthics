@@ -1,0 +1,53 @@
+{
+  "voice": "zh-CN-YunxiNeural",
+  "rate": "+3%",
+  "duration": 387.096,
+  "file": "audio/narration.wav",
+  "structure": {
+    "lead": 1.0,
+    "gap": 1.2,
+    "tail": 3.2
+  },
+  "segments": [
+    {
+      "id": "ch1",
+      "start": 1.0,
+      "end": 51.064
+    },
+    {
+      "id": "ch2",
+      "start": 52.264,
+      "end": 95.416
+    },
+    {
+      "id": "ch3",
+      "start": 96.616,
+      "end": 142.288
+    },
+    {
+      "id": "ch4",
+      "start": 143.488,
+      "end": 200.704
+    },
+    {
+      "id": "ch5",
+      "start": 201.904,
+      "end": 252.136
+    },
+    {
+      "id": "ch6",
+      "start": 253.336,
+      "end": 294.256
+    },
+    {
+      "id": "ch7",
+      "start": 295.456,
+      "end": 349.168
+    },
+    {
+      "id": "ch8",
+      "start": 350.368,
+      "end": 383.896
+    }
+  ]
+}

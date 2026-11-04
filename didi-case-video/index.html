@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>数据从哪里来 · 滴滴网络安全审查案</title>
+<script>window.READY = false;</script>
+<style>
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module" src="./preview.js"></script>
+<script type="module">
+import { DUR, CHAPTERS } from './timeline.js';
+import { seg, lerp, clamp, ease, spring, hash, stageSize, setupCanvas, loadFonts, loadImage } from './motion.js';
+
+const { W, H } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), W, H);
+const TAU = Math.PI * 2;
+
+const PAPER = '#EFE7D6', PAPER2 = '#E4D8BF', INK = '#241C14', MUTE = '#6B5B45';
+const RED = '#B3121B', MANILA = '#C8A265', MANILA2 = '#A98347';
+const DESK = '#150F0C', DESK2 = '#241B16';
+const SANS = '"Microsoft YaHei", "PingFang SC", sans-serif';
+const MONO = '"Cascadia Mono", Consolas, "Courier New", monospace';
+
+// ── primitives ─────────────────────────────────────────────────────────────
+function txt(s, x, y, size, o = {}) {
+  const { weight = 400, font = SANS, color = INK, align = 'left', baseline = 'alphabetic', ls = 0, alpha = 1 } = o;
+  ctx.save(); ctx.globalAlpha = alpha;
+  ctx.font = `${weight} ${size}px ${font}`;
+  ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = baseline;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = ls + 'px';
+  ctx.fillText(s, x, y); ctx.restore();
+}
+function tw(s, k) { return s.slice(0, Math.ceil(s.length * clamp(k))); }
+function line(x1, y1, x2, y2, color, w = 1, dash = null) {
+  ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = w;
+  if (dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.restore();
+}
+function rect(x, y, w, h, fill, r = 0) {
+  ctx.save(); ctx.fillStyle = fill; ctx.beginPath();
+  if (r) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+  ctx.fill(); ctx.restore();
+}
+function desk() {
+  const g = ctx.createRadialGradient(W * 0.5, H * 0.42, 60, W * 0.5, H * 0.5, W * 0.92);
+  g.addColorStop(0, DESK2); g.addColorStop(1, DESK);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 240; i++) {
+    const x = hash(i, 3) * W, y = hash(i + 500, 7) * H;
+    ctx.fillStyle = `rgba(255,238,214,${0.012 + 0.018 * hash(i + 90, 11)})`;
+    ctx.fillRect(x, y, 2, 2);
+  }
+}
+function sheet(x, y, w, h, rot, fn, o = {}) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = o.blur ?? 38; ctx.shadowOffsetY = o.oy ?? 16;
+  ctx.fillStyle = o.fill || PAPER;
+  ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, o.r ?? 5); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  if (o.lines) {
+    ctx.strokeStyle = 'rgba(120,95,60,0.10)'; ctx.lineWidth = 1;
+    for (let yy = -h / 2 + 78; yy < h / 2 - 24; yy += 54) {
+      ctx.beginPath(); ctx.moveTo(-w / 2 + 44, yy); ctx.lineTo(w / 2 - 44, yy); ctx.stroke();
+    }
+  }
+  ctx.save(); ctx.translate(-w / 2, -h / 2); fn(w, h); ctx.restore();
+  ctx.restore();
+}
+function stamp(cx, cy, r, l1, l2, rot, alpha, scale = 1) {
+  if (alpha <= 0.005) return;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(scale, scale); ctx.globalAlpha = alpha;
+  ctx.strokeStyle = RED; ctx.lineWidth = r * 0.055;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
+  ctx.lineWidth = r * 0.018;
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.87, 0, TAU); ctx.stroke();
+  txt(l1, 0, -r * 0.30, r * 0.19, { weight: 700, color: RED, align: 'center', ls: r * 0.02 });
+  txt(l2, 0, r * 0.20, r * 0.32, { weight: 800, color: RED, align: 'center' });
+  ctx.restore();
+}
+function polaroid(img, x, y, w, h, rot, label) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 10;
+  ctx.fillStyle = '#F6F0E2'; ctx.fillRect(-w / 2 - 12, -h / 2 - 12, w + 24, h + 30);
+  ctx.shadowColor = 'transparent';
+  ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  if (label) txt(label, -w / 2, h / 2 + 26, 15, { font: MONO, color: '#7A6A50' });
+  ctx.restore();
+}
+function pinDot(x, y, r = 7) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(x + 2, y + 3, r, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#C8232C'; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.arc(x - 2, y - 2, r * 0.32, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+function threadPath(pts, k) {
+  if (k <= 0) return;
+  ctx.save(); ctx.strokeStyle = '#C8232C'; ctx.lineWidth = 2.4; ctx.globalAlpha = 0.9;
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) {
+    const [x1, y1] = pts[i - 1], [x2, y2] = pts[i];
+    ctx.quadraticCurveTo((x1 + x2) / 2, (y1 + y2) / 2 - 26, x2, y2);
+  }
+  ctx.setLineDash([4000, 4000]); ctx.lineDashOffset = 4000 * (1 - clamp(k));
+  ctx.stroke(); ctx.restore();
+}
+// 章节之间用硬切，不做暗场过渡（暗场会被判为黑帧，也不符合纸质档案的观感）
+function boundaryFade(_lt) {}
+
+// ── CH1 · 一年之间 (0–45) ─────────────────────────────────────────────────
+function ch1(t) {
+  desk();
+  const up = clamp(spring(t - 0.15, { freq: 1.5, damp: 0.9 }));
+  ctx.save(); ctx.translate(0, lerp(520, 0, up));
+
+  // folder
+  ctx.save(); ctx.translate(W / 2, H / 2 + 30); ctx.rotate(-0.028);
+  ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 70; ctx.shadowOffsetY = 34;
+  ctx.fillStyle = MANILA;
+  ctx.beginPath(); ctx.roundRect(-660, -360, 1320, 740, 6); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(-660, -412, 430, 64, 6); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.fillStyle = MANILA2; ctx.beginPath(); ctx.rect(-660, -360, 1320, 14); ctx.fill();
+  line(-660, -96, 660, -96, 'rgba(110,80,44,0.25)', 1.5);
+  txt(tw('案卷 · 滴滴网络安全审查', seg(t, 1.2, 2.4)), -620, -372, 20, { weight: 700, color: '#5C4423', ls: 2 });
+  ctx.restore();
+
+  // date cards
+  const cards = [
+    { x: 430, y: 420, rot: -0.04, d: '2021.07.02', a: '网络安全审查启动', b: '停止新用户注册', at: 7 },
+    { x: 960, y: 400, rot: 0.025, d: '2021.07.04', a: 'App 下架', b: '严重违法违规收集使用个人信息', at: 15 },
+    { x: 1490, y: 430, rot: -0.03, d: '2022.07.21', a: '行政处罚', b: '罚款 80.26 亿元', at: 24 },
+  ];
+  cards.forEach(c => {
+    const k = clamp(spring(t - c.at, { freq: 2.0, damp: 0.8 }));
+    if (k <= 0.01) return;
+    ctx.save(); ctx.globalAlpha = clamp(k);
+    sheet(c.x, lerp(c.y + 90, c.y, clamp(k)), 420, 268, c.rot, (w, h) => {
+      txt(c.d, 34, 92, 56, { font: MONO, weight: 700, color: INK });
+      line(34, 118, w - 34, 118, 'rgba(36,28,20,0.35)', 2);
+      txt(c.a, 34, 168, 30, { weight: 700, color: INK });
+      txt(c.b, 34, 212, 19, { color: MUTE });
+    }, { lines: true });
+    ctx.restore();
+  });
+
+  // thread + pins
+  threadPath([[430, 286], [960, 266], [1490, 296]], seg(t, 30, 34));
+  [[430, 286], [960, 266], [1490, 296]].forEach(([x, y]) => { if (t > 30) pinDot(x, y); });
+
+  // the big stamp
+  const sk = spring(t - 36, { freq: 2.1, damp: 0.5 });
+  stamp(1490, 672, 104, '行政处罚决定', '80.26 亿元', -0.2, clamp(sk) * 0.9, lerp(1.7, 1, clamp(sk)));
+
+  // caption
+  const ck = ease.outCubic(seg(t, 39, 41));
+  txt('从审查启动到处罚公布，中间隔了一年。', W / 2, 1002, 30, { weight: 600, color: PAPER2, align: 'center', alpha: ck });
+
+  // exhibit tag
+  txt('EXHIBIT 01', W - 96, 92, 18, { font: MONO, weight: 700, color: MANILA, align: 'right', ls: 4, alpha: clamp(up) });
+  ctx.restore();
+
+  // evidence photo on the desk
+  const pk = ease.outCubic(seg(t, 3, 5));
+  if (pk > 0.01) {
+    ctx.save(); ctx.globalAlpha = pk;
+    polaroid(IMGS.penalty, 1752, 300, 210, 140, 0.06, '处罚决定 2022.07.21');
+    pinDot(1752, 224);
+    ctx.restore();
+  }
+}
+
+// ── CH2 · 生意与数据 (45–105) ─────────────────────────────────────────────
+function ch2(t) {
+  desk();
+  const cx = 780, cy = 620;
+
+  // map sheet
+  const k = clamp(spring(t - 0.2, { freq: 2.0, damp: 0.85 }));
+  ctx.save(); ctx.globalAlpha = clamp(k);
+  sheet(880, 560, 1440, 820, 0.012, (w, h) => {
+    // streets
+    for (let i = 0; i < 9; i++) {
+      const y = 70 + i * 86;
+      line(60, y, w - 60, y, 'rgba(120,95,60,0.22)', 1);
+    }
+    for (let i = 0; i < 11; i++) {
+      const x = 70 + i * 122;
+      line(x, 46, x, h - 46, 'rgba(120,95,60,0.16)', 1);
+    }
+    // route
+    ctx.save(); ctx.strokeStyle = 'rgba(179,18,27,0.75)'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(120, 640);
+    ctx.bezierCurveTo(300, 560, 360, 300, 560, 300);
+    ctx.bezierCurveTo(760, 300, 820, 520, 1020, 520);
+    ctx.stroke(); ctx.restore();
+    // center point
+    ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(560, 300, 9, 0, TAU); ctx.fill();
+    txt('订单', 580, 286, 18, { color: MUTE, font: MONO });
+  });
+  ctx.restore();
+
+  // expanding collection radius
+  const grow = ease.outCubic(seg(t, 4, 34));
+  const r = lerp(20, 640, grow);
+  const MC = { x: 720, y: 450 };
+  ctx.save();
+  ctx.strokeStyle = 'rgba(179,18,27,0.55)'; ctx.lineWidth = 2; ctx.setLineDash([9, 9]);
+  ctx.beginPath(); ctx.arc(MC.x, MC.y, r, 0, TAU); ctx.stroke();
+  ctx.restore();
+
+  // authorization boundary
+  ctx.save(); ctx.strokeStyle = 'rgba(36,28,20,0.55)'; ctx.lineWidth = 2; ctx.setLineDash([4, 7]);
+  ctx.beginPath(); ctx.arc(MC.x, MC.y, 250, 0, TAU); ctx.stroke(); ctx.restore();
+  txt('用户授权范围', MC.x, MC.y - 268, 17, { font: MONO, color: MUTE, align: 'center', alpha: clamp(seg(t, 5, 7)) });
+
+  // labels appear as the radius passes them
+  const tags = [
+    ['相册', 900, 250, 10], ['剪切板', 470, 300, 14], ['应用列表', 960, 386, 18],
+    ['精准位置', 470, 620, 22], ['人脸识别', 900, 690, 26],
+  ];
+  tags.forEach(([s, x, y, at]) => {
+    const a = clamp(seg(t, at, at + 1.2));
+    if (a <= 0) return;
+    ctx.save(); ctx.globalAlpha = a;
+    rect(x - 62, y - 30, 124, 44, 'rgba(239,231,214,0.92)', 3);
+    ctx.strokeStyle = 'rgba(36,28,20,0.3)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(x - 62, y - 30, 124, 44, 3); ctx.stroke();
+    txt(s, x, y, 21, { weight: 600, color: INK, align: 'center' });
+    ctx.restore();
+  });
+
+  // argument cards on the right
+  const args = [
+    ['匹配效率', '派单越准，成交率越高', 12],
+    ['采集范围', '画像越细，补贴越少', 22],
+    ['没有自带上限', '「多采一点」成了默认值', 32],
+  ];
+  args.forEach(([h, s, at], i) => {
+    const a = clamp(spring(t - at, { freq: 2.2, damp: 0.85 }));
+    if (a <= 0.01) return;
+    ctx.save(); ctx.globalAlpha = clamp(a);
+    const y = 300 + i * 190;
+    rect(1520, lerp(y + 40, y, clamp(a)), 300, 140, 'rgba(239,231,214,0.94)', 3);
+    txt(h, 1548, lerp(y + 82, y + 42, clamp(a)), 28, { weight: 700, color: INK });
+    txt(s, 1548, lerp(y + 122, y + 82, clamp(a)), 18, { color: MUTE });
+    ctx.restore();
+    if (i) line(1670, y - 44, 1670, y - 8, 'rgba(239,231,214,0.4)', 2);
+  });
+
+  const ck = ease.outCubic(seg(t, 46, 52));
+  txt('数据采集从辅助功能变成了核心能力——它没有自带上限。', 960, 1022, 28, { weight: 600, color: PAPER2, align: 'center', alpha: ck });
+
+  // city evidence
+  const bk = ease.outCubic(seg(t, 6, 8));
+  if (bk > 0.01) {
+    ctx.save(); ctx.globalAlpha = bk;
+    polaroid(IMGS.beijing, 316, 238, 310, 186, -0.05, '北京 · 夜间出行');
+    pinDot(316, 156);
+    ctx.restore();
+  }
+}
+
+// ── CH3 · 十六项事实 (105–165) ────────────────────────────────────────────
+function ch3(t) {
+  desk();
+  const rows = [
+    ['违法收集相册截图', '1196.39 万条'],
+    ['过度收集剪切板、应用列表', '83.23 亿条'],
+    ['过度收集人脸、地址等信息', '人脸 1.07 亿'],
+    ['过度收集精准位置信息', '1.67 亿条'],
+    ['学历信息、明文身份证号', '5780.26 万条'],
+    ['未告知分析出行意图、常驻城市', '539.76 亿条'],
+    ['顺风车频繁索取电话权限', '—'],
+    ['未清晰说明 19 项处理目的', '—'],
+  ];
+  const k = clamp(spring(t - 0.2, { freq: 2.0, damp: 0.9 }));
+  ctx.save(); ctx.globalAlpha = clamp(k);
+  sheet(900, 460, 1240, 700, -0.008, (w, h) => {
+    txt('八个方面 · 16 项违法事实', 44, 58, 25, { weight: 700, color: INK });
+    line(44, 80, w - 44, 80, 'rgba(36,28,20,0.3)', 1.5);
+    rows.forEach(([a, b], i) => {
+      const at = 4 + i * 3.4, p = clamp(seg(t, at, at + 1.2));
+      if (p <= 0) return;
+      const y = 126 + i * 68;
+      ctx.save(); ctx.globalAlpha = p;
+      txt('0' + (i + 1), 44, y, 17, { font: MONO, color: MUTE });
+      txt(a, 96, y, 23, { color: INK });
+      txt(b, w - 44, y, 21, { font: MONO, color: RED, align: 'right' });
+      line(44, y + 22, w - 44, y + 22, 'rgba(36,28,20,0.12)', 1);
+      ctx.restore();
+    });
+  });
+  ctx.restore();
+
+  // bottom summary band
+  const band = ease.outCubic(seg(t, 33, 36));
+  if (band > 0.01) {
+    ctx.save(); ctx.globalAlpha = clamp(band);
+    ctx.fillStyle = 'rgba(13,9,7,0.9)'; ctx.fillRect(0, 842, W, 238);
+    line(0, 842, W, 842, 'rgba(200,162,101,0.35)', 1);
+    txt('合 计', 120, 906, 22, { color: MANILA, ls: 4 });
+    const v = 647.09 * ease.outExpo(seg(t, 36, 41));
+    txt(v.toFixed(2), 118, 1014, 112, { weight: 800, color: PAPER, font: MONO });
+    txt('亿条', 545, 1014, 40, { weight: 600, color: MANILA });
+    txt('41 款 App · 持续约 7 年', 760, 990, 24, { color: PAPER2 });
+    txt('自 2015 年 6 月起', 760, 1028, 20, { color: MUTE });
+    ctx.restore();
+  }
+  const sk = spring(t - 43, { freq: 2.0, damp: 0.5 });
+  stamp(1690, 955, 84, '个人信息', '647.09 亿条', -0.16, clamp(sk) * 0.85, lerp(1.6, 1, clamp(sk)));
+}
+
+// ── CH4 · 违规如何发生 (165–240) ──────────────────────────────────────────
+function ch4(t) {
+  desk();
+  const items = [
+    { t: 4, n: '01', h: '相册截图', q: '1196.39 万条', b: '需求叫「上传行程凭证」，实现上读了整个相册。' },
+    { t: 20, n: '02', h: '剪切板 + 应用列表', q: '83.23 亿条', b: '写进 SDK，每次启动自动执行——不是某个版本写错了。' },
+    { t: 36, n: '03', h: '明文身份证号', q: '5780.26 万条', b: '加密存储不影响业务，只多一点工程成本；工期一紧，这点成本先被砍。' },
+    { t: 52, n: '04', h: '人脸 + 精准位置', q: '1.07 亿 / 1.67 亿', b: '采集点扩到后台运行、车内记录仪，目的和手段就对不上了。' },
+  ];
+  items.forEach((it, i) => {
+    const a = clamp(spring(t - it.t, { freq: 2.1, damp: 0.85 }));
+    if (a <= 0.01) return;
+    const x = 480 + (i % 2) * 960, y = 342 + Math.floor(i / 2) * 438;
+    ctx.save(); ctx.globalAlpha = clamp(a);
+    sheet(x, lerp(y + 70, y, clamp(a)), 850, 336, (i % 2 ? 0.02 : -0.02), (w, h) => {
+      txt(it.n, 36, 60, 28, { font: MONO, weight: 700, color: RED });
+      txt(it.h, 116, 62, 32, { weight: 700, color: INK });
+      txt(it.q, w - 36, 60, 24, { font: MONO, color: MUTE, align: 'right' });
+      line(36, 90, w - 36, 90, 'rgba(36,28,20,0.25)', 1.5);
+      txt(it.b, 36, 150, 23, { color: INK });
+    }, { lines: true });
+    ctx.restore();
+    const sk = spring(t - it.t - 1.4, { freq: 2.0, damp: 0.5 });
+    stamp(x + 290, y + 44, 58, '违规', it.n, 0.16, clamp(sk) * 0.8, lerp(1.5, 1, clamp(sk)));
+  });
+
+  const qk = ease.outCubic(seg(t, 66, 71));
+  txt('代码能读，不等于应该读。', W / 2, 1022, 34, { weight: 700, color: PAPER, align: 'center', alpha: qk });
+}
+
+// ── CH5 · 监管与法律 (240–300) ────────────────────────────────────────────
+function ch5(t) {
+  desk();
+  const k = clamp(spring(t - 0.2, { freq: 2.0, damp: 0.9 }));
+  ctx.save(); ctx.globalAlpha = clamp(k);
+
+  // process card
+  sheet(520, 500, 760, 720, -0.015, (w, h) => {
+    txt('监管链条', 40, 66, 28, { weight: 700, color: INK });
+    line(40, 92, w - 40, 92, 'rgba(36,28,20,0.3)', 1.5);
+    const steps = [['网络安全审查', '2021.07.02'], ['立案调查', '审查结论及线索'], ['行政处罚', '2022.07.21']];
+    steps.forEach(([a, b], i) => {
+      const p = clamp(seg(t, 4 + i * 6, 5 + i * 6));
+      if (p <= 0) return;
+      const y = 160 + i * 190;
+      ctx.save(); ctx.globalAlpha = p;
+      ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(70, y + 18, 10, 0, TAU); ctx.fill();
+      if (i < 2) line(70, y + 34, 70, y + 160, 'rgba(179,18,27,0.4)', 1.5, [6, 6]);
+      txt(a, 110, y + 28, 30, { weight: 700, color: INK });
+      txt(b, 110, y + 68, 19, { color: MUTE });
+      ctx.restore();
+    });
+  });
+
+  // law cards
+  const laws = [
+    ['网络安全法 · 第 41 条', '收集使用个人信息，应遵循合法、正当、必要原则，明示目的、方式和范围，并经被收集者同意。', 10],
+    ['数据安全法 · 第 27 条', '建立健全全流程数据安全管理制度，组织开展数据安全教育培训。', 18],
+    ['个人信息保护法 · 第 6 条', '处理个人信息应当限于实现处理目的的最小范围，不得过度收集。', 26],
+  ];
+  laws.forEach(([h, b, at], i) => {
+    const a = clamp(spring(t - at, { freq: 2.1, damp: 0.85 }));
+    if (a <= 0.01) return;
+    const y = 236 + i * 232;
+    ctx.save(); ctx.globalAlpha = clamp(a);
+    const hl = i === 2 && t > 32;
+    rect(1180, lerp(y + 46, y, clamp(a)), 660, 176, 'rgba(239,231,214,0.95)', 3);
+    if (hl) { ctx.strokeStyle = RED; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(1180, y, 660, 176, 3); ctx.stroke(); }
+    txt(h, 1214, y + 50, 25, { weight: 700, color: hl ? RED : INK });
+    wrap(b, 1214, y + 94, 590, 30, 19, '#3A2E20');
+    ctx.restore();
+  });
+
+  const ck = ease.outCubic(seg(t, 46, 52));
+  txt('合规要看的最小单位，是「这一项数据到底要不要」。', 960, 1016, 27, { weight: 600, color: PAPER2, align: 'center', alpha: ck });
+}
+
+// ── CH6 · 责任认定 (300–345) ──────────────────────────────────────────────
+function ch6(t) {
+  desk();
+  const k = clamp(spring(t - 0.2, { freq: 2.0, damp: 0.9 }));
+  ctx.save(); ctx.globalAlpha = clamp(k);
+  sheet(740, 520, 1040, 720, 0.008, (w, h) => {
+    txt('责任主体', 44, 66, 28, { weight: 700, color: INK });
+    line(44, 92, w - 44, 92, 'rgba(36,28,20,0.3)', 1.5);
+    // org boxes
+    const bx = [w / 2, w / 2, w / 2], by = [180, 330, 500];
+    const box = (x, y, ww, hh, s) => { ctx.strokeStyle = 'rgba(36,28,20,0.55)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(x - ww / 2, y - hh / 2, ww, hh, 3); ctx.stroke(); txt(s, x, y + 8, 22, { weight: 600, color: INK, align: 'center' }); };
+    box(bx[0], by[0], 300, 66, '滴滴全球股份有限公司');
+    box(bx[1], by[1], 360, 66, '信息与数据安全委员会');
+    box(bx[2], by[2], 300, 66, '各业务线 · 41 款 App');
+    line(w / 2, 213, w / 2, 297, 'rgba(36,28,20,0.5)', 2);
+    line(w / 2, 363, w / 2, 467, 'rgba(36,28,20,0.5)', 2);
+    txt('统一决策与部署', w / 2 + 24, 260, 18, { color: MUTE });
+  });
+  ctx.restore();
+
+  // executives
+  const execs = [['程维', '董事长兼 CEO', 12], ['柳青', '总裁', 18]];
+  execs.forEach(([n, role, at], i) => {
+    const a = clamp(spring(t - at, { freq: 2.1, damp: 0.8 }));
+    if (a <= 0.01) return;
+    const x = 1580, y = 300 + i * 230;
+    ctx.save(); ctx.globalAlpha = clamp(a);
+    rect(x - 150, lerp(y + 60, y, clamp(a)), 320, 180, 'rgba(239,231,214,0.95)', 3);
+    txt(n, x - 122, y + 74, 40, { weight: 800, color: INK });
+    txt(role, x - 122, y + 116, 18, { color: MUTE });
+    ctx.restore();
+    const sk = spring(t - at - 1.6, { freq: 2.0, damp: 0.5 });
+    stamp(x + 82, y + 108, 62, '主管责任', '100 万元', -0.18, clamp(sk) * 0.85, lerp(1.5, 1, clamp(sk)));
+  });
+
+  const ck = ease.outCubic(seg(t, 30, 35));
+  txt('责任没有落到某条产品线，也没有层层下压、让法务背锅。', 960, 1006, 27, { weight: 600, color: PAPER2, align: 'center', alpha: ck });
+
+  const ok = ease.outCubic(seg(t, 4, 6));
+  if (ok > 0.01) {
+    ctx.save(); ctx.globalAlpha = ok;
+    polaroid(IMGS.office, 1790, 930, 230, 145, 0.04, '滴滴 · 北京');
+    pinDot(1790, 843);
+    ctx.restore();
+  }
+}
+
+// ── CH7 · 四种视角 (345–400) ──────────────────────────────────────────────
+function ch7(t) {
+  desk();
+  const cards = [
+    ['功利主义', '收益记在财报，损失记在别处；算总数时，看不见的那部分被算成了零。', 4],
+    ['义务论', '用户点「同意」时，并不真知道授权了什么。没有真实知情同意的采集，仍然不正当。', 14],
+    ['责任伦理', '写下一行采集代码时，要看它在最坏情况下会怎样——后果滞后七年才显形。', 24],
+    ['分配正义', '最不利的，是那些既没法拒绝授权、也感觉不到风险的普通乘客。', 34],
+  ];
+  cards.forEach(([h, b, at], i) => {
+    const a = clamp(spring(t - at, { freq: 2.0, damp: 0.85 }));
+    if (a <= 0.01) return;
+    const x = 330 + i * 420;
+    ctx.save(); ctx.globalAlpha = clamp(a);
+    sheet(x, lerp(560 + 80, 560, clamp(a)), 360, 600, i % 2 ? 0.02 : -0.02, (w, hh) => {
+      txt('0' + (i + 1), 30, 56, 20, { font: MONO, color: RED });
+      txt(h, 30, 132, 34, { weight: 700, color: INK });
+      line(30, 164, w - 30, 164, 'rgba(36,28,20,0.3)', 1.5);
+      wrap(b, 30, 220, w - 60, 36, 24, MUTE);
+    }, { lines: true });
+    ctx.restore();
+  });
+  const ck = ease.outCubic(seg(t, 46, 51));
+  txt('四种视角，指向同一个问题：这次授权是真的吗？', 960, 986, 27, { weight: 600, color: PAPER2, align: 'center', alpha: ck });
+}
+
+function wrap(s, x, y, maxW, lh, size, color, weight = 400) {
+  ctx.save(); ctx.font = `${weight} ${size}px ${SANS}`;
+  let cur = '', yy = y;
+  for (const ch of s) {
+    if (ctx.measureText(cur + ch).width > maxW && cur.length) {
+      txt(cur, x, yy, size, { color, weight }); cur = ch; yy += lh;
+    } else cur += ch;
+  }
+  if (cur) txt(cur, x, yy, size, { color, weight });
+  ctx.restore();
+}
+
+// ── CH8 · 四条启示与落版 (346.8–384) ─────────────────────────────────────
+function ch8(t) {
+  desk();
+  // folder behind
+  ctx.save(); ctx.translate(W / 2, H / 2 + 30); ctx.rotate(-0.02);
+  ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 60; ctx.shadowOffsetY = 28;
+  ctx.fillStyle = MANILA;
+  ctx.beginPath(); ctx.roundRect(-660, -360, 1320, 740, 6); ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.fillStyle = MANILA2; ctx.beginPath(); ctx.rect(-660, -360, 1320, 14); ctx.fill();
+  ctx.restore();
+
+  // the four lessons, one per spoken point
+  const listA = 1 - seg(t, 25.2, 26.0);
+  if (listA > 0.01) {
+    const items = [
+      ['01', '能实现，不等于该做', '做得到，不说明该做'],
+      ['02', '合规前置到设计阶段', '需求评审先问：最少需要哪些数据'],
+      ['03', '保留说「不」的通道', '发现问题，有地方记下来、往上报'],
+      ['04', '把法律当作设计输入', '不是上线之后补的功课'],
+    ];
+    ctx.save(); ctx.globalAlpha = listA;
+    sheet(960, 520, 1240, 640, -0.008, (w, h) => {
+      txt('四条启示', 46, 66, 26, { weight: 700, color: INK });
+      line(46, 90, w - 46, 90, 'rgba(36,28,20,0.3)', 1.5);
+      items.forEach(([n, h2, b2], i) => {
+        const at = 3 + i * 6, p = clamp(seg(t, at, at + 1.2));
+        if (p <= 0) return;
+        const y = 150 + i * 118;
+        ctx.save(); ctx.globalAlpha = listA * p;
+        txt(n, 46, y, 22, { font: MONO, color: RED });
+        txt(h2, 110, y, 30, { weight: 700, color: INK });
+        txt(b2, 110, y + 38, 19, { color: MUTE });
+        line(46, y + 58, w - 46, y + 58, 'rgba(36,28,20,0.12)', 1);
+        ctx.restore();
+      });
+    });
+    ctx.restore();
+  }
+
+  // end card
+  const k = ease.outCubic(seg(t, 26.2, 27.8));
+  if (k > 0.01) {
+    ctx.save(); ctx.globalAlpha = k;
+    rect(W / 2 - 560, 330, 1120, 240, 'rgba(18,13,10,0.62)', 4);
+    ctx.strokeStyle = 'rgba(200,162,101,0.45)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(W / 2 - 560, 330, 1120, 240, 4); ctx.stroke();
+    txt('能实现，不等于该做。', W / 2, 452, 92, { weight: 800, color: '#F6F0E2', align: 'center' });
+    ctx.restore();
+  }
+
+  const s = ease.outCubic(seg(t, 31.5, 33.0));
+  txt('第 7 组 · 工程伦理与网络安全', W / 2, 640, 28, { color: PAPER2, align: 'center', alpha: s, ls: 2 });
+  txt('2026', W / 2, 690, 20, { font: MONO, color: MUTE, align: 'center', alpha: s });
+
+  const sk = spring(t - 32.6, { freq: 1.9, damp: 0.5 });
+  stamp(W / 2 + 380, 760, 100, '归档', 'CAC 2022', 0.16, clamp(sk) * 0.8, lerp(1.6, 1, clamp(sk)));
+}
+
+// ── dispatch ──────────────────────────────────────────────────────────────
+// 章节起止由 timeline.js 的 CHAPTERS 给出（随口播生成）；画面按 base/dur 比例重映射
+const FNS = [ch1, ch2, ch3, ch4, ch5, ch6, ch7, ch8];
+const CH = CHAPTERS.map((c, i) => ({ ...c, fn: FNS[i] }));
+
+window.DUR = DUR;
+window.render = t => {
+  t = clamp(t, 0, DUR - 1e-4);
+  const ch = CH.find(c => t >= c.t0 && t < c.t1) || CH[CH.length - 1];
+  const lt = t - ch.t0;
+  const u = lt * (ch.base / (ch.t1 - ch.t0));
+  ctx.save();
+  ch.fn(u);
+  boundaryFade(lt);
+  ctx.restore();
+};
+
+await loadFonts([`800 92px ${SANS}`, `700 34px ${SANS}`, `400 22px ${SANS}`, `700 56px ${MONO}`]);
+window.IMGS = {
+  penalty: await loadImage('./assets/img/penalty-notice.jpg'),
+  office: await loadImage('./assets/img/didi-office.jpg'),
+  night: await loadImage('./assets/img/night-app.jpg'),
+  beijing: await loadImage('./assets/img/beijing-night.jpg'),
+};
+window.render(0);
+window.READY = true;
+</script>
+</body>
+</html>

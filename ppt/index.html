@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="academic-paper">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>数据从哪里来 · 滴滴网络安全审查案</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" id="theme-link" href="assets/themes/academic-paper.css">
+<link rel="stylesheet" href="assets/animations/animations.css">
+<style>
+  .cover-img{position:absolute;inset:0;background-size:cover;background-position:center;filter:saturate(.9)}
+  .cover-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,rgba(0,0,0,.55) 45%,rgba(0,0,0,.88) 100%)}
+  .cover-inner{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:88px}
+  .on-dark{color:var(--bg)}
+  .on-dark .lede,.on-dark .kicker{color:rgba(255,255,255,.82)}
+  .photo{width:100%;height:auto;display:block;box-shadow:var(--shadow-lg)}
+  .cap{font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.6}
+  .split{display:grid;grid-template-columns:1.15fr .85fr;gap:56px;align-items:center}
+  .split.rev{grid-template-columns:.85fr 1.15fr}
+  .big{font-size:96px;font-weight:800;line-height:.95;letter-spacing:-.04em}
+  .quote-card{border-left:3px solid var(--accent);background:var(--surface-2);padding:22px 26px}
+  .quote-card p{margin:0;color:var(--text-2);font-size:17px;line-height:1.8}
+  .quote-card .src{display:block;margin-top:10px;font-size:13px;color:var(--text-3)}
+  .chart text{font-family:var(--font-sans)}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--text-3)}
+  .tl2{position:relative;margin-top:40px}
+  .tl2::before{content:"";position:absolute;left:0;right:0;top:46px;height:1px;background:var(--text-1)}
+  .tl2 .tl-row{display:grid;grid-template-columns:repeat(5,1fr);gap:20px;align-items:start}
+  .tl2 .item{position:relative;padding-top:78px;text-align:center}
+  .tl2 .dot{position:absolute;top:38px;left:50%;transform:translateX(-50%);width:16px;height:16px;border-radius:50%;background:var(--accent);border:3px solid var(--bg)}
+  .tl2 .year{font-size:13px;color:var(--text-3);letter-spacing:.1em;position:absolute;top:0;left:0;right:0;font-weight:600}
+  .tl2 h4{font-size:17px;margin:6px 0 8px}
+  .tl2 p{font-size:13px;color:var(--text-2);margin:0}
+  .law-axis{position:relative;margin-top:74px;height:118px}
+  .law-axis .cap-line{position:absolute;left:0;top:16px;right:0;border-top:1px dashed var(--border)}
+  .law-axis .cap-tag{position:absolute;left:0;top:-2px;font-size:11.5px;letter-spacing:.12em;color:var(--text-3)}
+  .law-mark{position:absolute;top:0;transform:translateX(-50%);text-align:center;width:320px}
+  .law-mark i{display:block;width:11px;height:11px;border-radius:50%;background:var(--accent);margin:11px auto 9px}
+  .law-mark b{display:block;font-size:13px;font-weight:600;color:var(--text-1)}
+  .law-mark em{display:block;font-style:normal;font-size:12px;color:var(--text-3);margin-top:2px}
+  .step{display:flex;gap:18px;align-items:flex-start}
+  .step .no{width:42px;height:42px;flex:none;border:1px solid var(--text-1);display:flex;align-items:center;justify-content:center;font-weight:700}
+  .anchor{display:block;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text-3);line-height:1.6}
+  .narr h4{font-size:15px;margin:0 0 6px;color:var(--text-1);font-weight:700;letter-spacing:.01em}
+  .narr p{font-size:15.5px;line-height:1.85;color:var(--text-2);margin:0 0 20px}
+  .narr p:last-child{margin-bottom:0}
+</style>
+</head>
+<body data-themes="academic-paper,swiss-grid,minimal-white,editorial-serif,solarized-light" data-theme-base="assets/themes/">
+<div class="deck">
+
+  <!-- 1 封面 -->
+  <section class="slide" data-title="封面" style="padding:0">
+    <div class="cover-img" style="background-image:url('assets/img/night-app.jpg')"></div>
+    <div class="cover-shade"></div>
+    <div class="cover-inner" style="padding-left:72px;padding-right:72px">
+      <p class="kicker on-dark">工程伦理与网络安全法 · 小组汇报</p>
+      <h1 class="h1 on-dark" style="font-size:82px;margin-bottom:14px">数据从哪里来<br>滴滴网络安全审查案</h1>
+      <p class="lede on-dark" style="max-width:58ch">80.26 亿元罚款，647.09 亿条个人信息，七年时间。这条采集链是从功能需求里长出来的。</p>
+      <p class="on-dark" style="margin-top:20px;font-size:15px;letter-spacing:.06em;opacity:.9">第 7 组　刘昊阳　刘科阳　鲁瑜　彭超　彭真昕</p>
+    </div>
+    <div class="deck-footer"><span class="dim2 on-dark">2026 · 小组汇报</span><span class="slide-number" data-current="1" data-total="16"></span></div>
+    <div class="notes">开场先看这张照片：夜里跑在路上的网约车，和车里的这块屏幕。案子起点在这个屏幕上，不在法律条文里。</div>
+  </section>
+
+  <!-- 2 三个数字 -->
+  <section class="slide tc center" data-title="三个数字">
+    <div style="width:100%">
+      <p class="kicker">三个数字</p>
+      <div class="grid g3 mt-l">
+        <div><div class="big">80.26<span style="font-size:40px">亿</span></div><p class="dim mt-s">罚款（元）</p></div>
+        <div><div class="big">647<span style="font-size:40px">亿条</span></div><p class="dim mt-s">违法处理的个人信息</p></div>
+        <div><div class="big">7<span style="font-size:40px">年</span></div><p class="dim mt-s">违法行为持续时间</p></div>
+      </div>
+      <p class="lede mt-l" style="margin:32px auto 0;text-align:center">16 项事实，8 个方面，持续 7 年。</p>
+    </div>
+    <div class="deck-footer"><span class="dim2">数据来源：网信办答记者问</span><span class="slide-number" data-current="2" data-total="16"></span></div>
+    <div class="notes">先给三个数字建立量级感。80 亿是结果，647 亿条和 7 年是原因。注意 647 亿条说的是「违法处理」，不只是「收集」。</div>
+  </section>
+
+  <!-- 3 时间轴 -->
+  <section class="slide" data-title="时间轴">
+    <p class="kicker">Timeline</p>
+    <h2 class="h2">从成立到处罚，九年半</h2>
+    <div class="tl2">
+      <div class="tl-row anim-stagger-list" data-anim-target>
+        <div class="item"><div class="year">2013.01</div><div class="dot"></div><h4>公司成立</h4><p>网约车、顺风车、两轮车</p></div>
+        <div class="item"><div class="year">2015.06</div><div class="dot"></div><h4>违法行为起点</h4><p>处罚决定认定的最早时间</p></div>
+        <div class="item"><div class="year">2021.07</div><div class="dot"></div><h4>审查与下架</h4><p>7 月 2 日审查，7 月 4 日下架</p></div>
+        <div class="item"><div class="year">2022.07</div><div class="dot"></div><h4>处罚公布</h4><p>80.26 亿元，两名高管各 100 万</p></div>
+        <div class="item"><div class="year">2022 后</div><div class="dot"></div><h4>整改与退市</h4><p>全面自查，退出美股</p></div>
+      </div>
+    </div>
+    <div class="law-axis">
+      <span class="cap-tag">法律生效</span>
+      <div class="cap-line"></div>
+      <div class="law-mark" style="left:56%">
+        <i></i>
+        <b>《数据安全法》2021-09-01 施行</b>
+        <em>《个人信息保护法》2021-11-01 施行</em>
+      </div>
+    </div>
+    <p class="dim" style="font-size:15px;margin-top:6px">违法从 2015 年 6 月开始，两部新法 2021 年秋天才施行。同一套做法，在法条落地之后变成了违法。</p>
+    <div class="deck-footer"><span class="dim2">数据来源：网信办公告与答记者问</span><span class="slide-number" data-current="3" data-total="16"></span></div>
+    <div class="notes">看这条线上的两个错位：违法从 2015 年开始，但《数据安全法》2021 年 9 月才施行，《个人信息保护法》2021 年 11 月才施行。三法能并罚，是因为行为一直持续到新法生效之后。</div>
+  </section>
+
+  <!-- 4 经过·上 -->
+  <section class="slide" data-title="经过·上">
+    <p class="kicker">Case · 2013–2021</p>
+    <h2 class="h2">业务扩张与数据积累</h2>
+    <div class="split mt-m">
+      <div class="narr">
+        <h4>打车靠匹配</h4>
+        <p>一笔订单要在几秒内派给最合适的司机，判断越准，成交率越高，要发的补贴越少。数据采集因此从辅助功能变成了核心能力。</p>
+        <h4>业务线一多，权限就宽</h4>
+        <p>到 2021 年，境内 41 款 App 共用一套账号、支付、定位与画像体系。相册用来看行程凭证，剪切板用来识别口令，应用列表用来判断用户装没装竞品。</p>
+        <h4>单看都有理由</h4>
+        <p>每一项在当时都能在需求文档里找到依据，问题在于没有人核算总量。</p>
+      </div>
+      <div>
+        <img class="photo" src="assets/img/didi-office.jpg" alt="滴滴北京办公楼前台">
+        <p class="cap">滴滴位于北京中关村数字山谷的办公楼（室内设计项目实景）</p>
+      </div>
+    </div>
+    <div class="deck-footer"><span class="dim2">2013–2021：从 0 到 41 款 App</span><span class="slide-number" data-current="4" data-total="16"></span></div>
+    <div class="notes">这一段讲起因，不用念数字。要讲清三件事：打车靠匹配，匹配靠数据；业务线一多，权限就跟着膨胀；每一项在当时都有理由，问题是没人做总账。这张办公楼照片放这里，是让人感知规模——41 款 App 共享一套数据底座。</div>
+  </section>
+
+  <!-- 5 经过·下 -->
+  <section class="slide" data-title="经过·下">
+    <p class="kicker">Case · 2021–2022</p>
+    <h2 class="h2">2021 年 7 月：上市、审查、下架</h2>
+    <div class="split mt-m" style="grid-template-columns:1.1fr .9fr">
+      <div class="narr">
+        <h4>6 月 30 日 – 7 月 4 日</h4>
+        <p>6 月 30 日上市；7 月 2 日，网络安全审查办公室宣布启动审查，审查期间停止新用户注册；7 月 4 日，网信办通报 App 严重违法违规收集使用个人信息，通知下架。</p>
+        <h4>此后一年</h4>
+        <p>7 月中旬多部门联合进驻。新用户注册停了一年，12 月宣布启动从纽交所退市，2022 年 6 月完成。</p>
+        <h4>2022 年 7 月 21 日</h4>
+        <p>处罚决定公布：罚款 80.26 亿元，程维、柳青各 100 万元。</p>
+      </div>
+      <div class="quote-card">
+        <p>「为防范国家数据安全风险，维护国家安全，保障公共利益……对『滴滴出行』实施网络安全审查，审查期间『滴滴出行』停止新用户注册。」</p>
+        <span class="src">—— 网络安全审查办公室公告，2021-07-02</span>
+      </div>
+    </div>
+    <div class="deck-footer"><span class="dim2">2021.6–2022.7：上市、审查、下架、处罚</span><span class="slide-number" data-current="5" data-total="16"></span></div>
+    <div class="notes">这一段是事件主体，按日期讲，别打乱顺序。重点在两个转折：一是上市四天后就被审查，二是下架之后新用户停了一年。处罚是最后一步，不是全部。</div>
+  </section>
+
+  <!-- 5 数据分布 -->
+  <section class="slide" data-title="数据分布">
+    <p class="kicker">Data · 16 项事实</p>
+    <h2 class="h2">采集量分布</h2>
+    <div class="card mt-m" style="padding:22px 26px">
+      <svg class="chart" viewBox="0 0 1000 420" width="100%" role="img" aria-label="各类违法采集数据量对比，横轴为对数刻度">
+        <g style="stroke:var(--border)" stroke-dasharray="2 4">
+          <line x1="250" y1="20" x2="250" y2="360"/><line x1="425" y1="20" x2="425" y2="360"/>
+          <line x1="600" y1="20" x2="600" y2="360"/><line x1="775" y1="20" x2="775" y2="360"/>
+          <line x1="950" y1="20" x2="950" y2="360"/>
+        </g>
+        <g style="fill:var(--text-3)" font-size="12" text-anchor="middle">
+          <text x="250" y="382">0.1 亿</text><text x="425" y="382">1 亿</text>
+          <text x="600" y="382">10 亿</text><text x="775" y="382">100 亿</text><text x="950" y="382">1000 亿</text>
+        </g>
+        <text x="238" y="47" text-anchor="end" font-size="14" style="fill:var(--text-1)">出行意图分析</text>
+        <rect x="250" y="32" width="653" height="22" style="fill:var(--accent)"/>
+        <text x="913" y="47" font-size="13" style="fill:var(--text-2)">539.76 亿条</text>
+        <text x="238" y="92" text-anchor="end" font-size="14" style="fill:var(--text-1)">剪切板 / 应用列表</text>
+        <rect x="250" y="77" width="511" height="22" style="fill:var(--accent)" opacity=".85"/>
+        <text x="771" y="92" font-size="13" style="fill:var(--text-2)">83.23 亿条</text>
+        <text x="238" y="137" text-anchor="end" font-size="14" style="fill:var(--text-1)">常驻城市</text>
+        <rect x="250" y="122" width="383" height="22" style="fill:var(--accent)" opacity=".75"/>
+        <text x="643" y="137" font-size="13" style="fill:var(--text-2)">15.38 亿条</text>
+        <text x="238" y="182" text-anchor="end" font-size="14" style="fill:var(--text-1)">异地商务 / 旅游</text>
+        <rect x="250" y="167" width="260" height="22" style="fill:var(--accent)" opacity=".65"/>
+        <text x="520" y="182" font-size="13" style="fill:var(--text-2)">3.04 亿条</text>
+        <text x="238" y="227" text-anchor="end" font-size="14" style="fill:var(--text-1)">精准位置</text>
+        <rect x="250" y="212" width="214" height="22" style="fill:var(--accent)" opacity=".55"/>
+        <text x="474" y="227" font-size="13" style="fill:var(--text-2)">1.67 亿条</text>
+        <text x="238" y="272" text-anchor="end" font-size="14" style="fill:var(--text-1)">「家」与「公司」地址</text>
+        <rect x="250" y="257" width="207" height="22" style="fill:var(--accent)" opacity=".5"/>
+        <text x="467" y="272" font-size="13" style="fill:var(--text-2)">1.53 亿条</text>
+        <text x="238" y="317" text-anchor="end" font-size="14" style="fill:var(--text-1)">人脸识别</text>
+        <rect x="250" y="302" width="180" height="22" style="fill:var(--accent)" opacity=".42"/>
+        <text x="440" y="317" font-size="13" style="fill:var(--text-2)">1.07 亿条</text>
+      </svg>
+      <div class="legend mt-s"><span>横轴为对数刻度</span><span>数据：网信办答记者问</span></div>
+    </div>
+    <div class="deck-footer"><span class="dim2">16 项事实中的 7 项</span><span class="slide-number" data-current="6" data-total="16"></span></div>
+    <div class="notes">用对数刻度是因为差了三个数量级。重点看两条：出行意图 539 亿条，是给用户贴标签用的；人脸识别 1.07 亿条，属于敏感信息。两项都不是打车的必要条件。</div>
+  </section>
+
+  <!-- 6 工程视角 -->
+  <section class="slide" data-title="工程视角">
+    <p class="kicker">Engineering view</p>
+    <h2 class="h2">违规是怎么发生的</h2>
+    <div class="grid g2 mt-m">
+      <div class="card card-accent"><h4>相册截图</h4><p class="dim" style="font-size:15px">需求叫「上传行程凭证」，实现只有几行权限申请。相册里的聊天记录、证件照、银行短信一起进了服务器。1196.39 万条。</p></div>
+      <div class="card card-accent"><h4>剪切板与应用列表</h4><p class="dim" style="font-size:15px">写进 SDK，每次启动自动执行。识别口令、判断竞品，和打车无关。83.23 亿条。</p></div>
+      <div class="card card-accent"><h4>明文存身份证号</h4><p class="dim" style="font-size:15px">收集有正当性，存储方式没有。5780.26 万条明文，拖库就收不回来。</p></div>
+      <div class="card card-accent"><h4>频繁索取无关权限</h4><p class="dim" style="font-size:15px">顺风车场景反复要「电话权限」。权限清单和功能清单对不上。</p></div>
+    </div>
+    <div class="deck-footer"><span class="dim2">默认值是工程师写的，责任推不干净</span><span class="slide-number" data-current="7" data-total="16"></span></div>
+    <div class="notes">这页是全场技术核心。四个动作单看都能在需求文档里找到理由，叠起来就是系统性违规。而且它们大多是默认开启的——默认值是谁写的？工程师。所以责任不能只推给产品经理。</div>
+  </section>
+
+  <!-- 7 官方通报 -->
+  <section class="slide" data-title="官方通报">
+    <p class="kicker">Evidence · 官方怎么说的</p>
+    <h2 class="h2">16 项违法事实</h2>
+    <div class="split rev mt-m">
+      <div>
+        <img class="photo" src="assets/img/report-post.jpg" alt="人民网微博通报16项违法事实">
+        <p class="cap">人民网微博通报：16 项违法事实，归纳为 8 个方面</p>
+      </div>
+      <div>
+        <p class="dim" style="font-size:16px;line-height:1.9">① 违法收集相册截图　1196.39 万条</p>
+        <p class="dim" style="font-size:16px;line-height:1.9">② 过度收集剪切板、应用列表　83.23 亿条</p>
+        <p class="dim" style="font-size:16px;line-height:1.9">③ 过度收集人脸识别　1.07 亿条</p>
+        <p class="dim" style="font-size:16px;line-height:1.9">④ 精准位置（含后台运行）　1.67 亿条</p>
+        <p class="dim" style="font-size:16px;line-height:1.9">⑤ 司机身份证号明文存储　5780.26 万条</p>
+      </div>
+    </div>
+    <div class="deck-footer"><span class="dim2">图片来源：人民网官方微博</span><span class="slide-number" data-current="8" data-total="16"></span></div>
+    <div class="notes">这页不放我的转述，直接放人民网的通报截图，旁边列出五项关键事实。用意是：这些数字是监管机关认定的，不是我们的推断。</div>
+  </section>
+
+  <!-- 8 处罚决定 -->
+  <section class="slide" data-title="处罚决定">
+    <p class="kicker">Penalty · 处罚长什么样</p>
+    <h2 class="h2">「事实清楚、证据确凿、情节严重、性质恶劣」</h2>
+    <div class="split mt-m">
+      <div>
+        <img class="photo" src="assets/img/penalty-notice.jpg" alt="国家互联网信息办公室处罚决定公告截图">
+        <p class="cap">「网信中国」发布的处罚决定（2022 年 7 月 21 日）</p>
+      </div>
+      <div class="quote-card">
+        <p>依据《网络安全法》《数据安全法》《个人信息保护法》《行政处罚法》等法律法规，对滴滴全球股份有限公司处人民币 <strong>80.26 亿元</strong>罚款，对董事长兼 CEO 程维、总裁柳青各处人民币 <strong>100 万元</strong>罚款。</p>
+        <span class="src">—— 国家互联网信息办公室处罚决定</span>
+      </div>
+    </div>
+    <div class="deck-footer"><span class="dim2">四部法律，一次并罚</span><span class="slide-number" data-current="9" data-total="16"></span></div>
+    <div class="notes">注意依据是四部法律：三法加行政处罚法。并罚容易被讲成重复处罚，其实是三种法益各自被侵犯。</div>
+  </section>
+
+  <!-- 9 法律依据 -->
+  <section class="slide" data-title="法律依据">
+    <p class="kicker">Legal basis · 三部法律各管一段</p>
+    <h2 class="h2">法律依据</h2>
+    <div class="grid g3 mt-m anim-stagger-list" data-anim-target>
+      <div class="card">
+        <p class="eyebrow">网络安全法</p>
+        <h4 class="mt-s">收个人信息要合法、正当、必要</h4>
+        <p class="dim" style="font-size:13.5px">第 41 条　收集使用个人信息的原则<br>第 21 条　等级保护　第 42 条　不得泄露</p>
+        <span class="anchor">本案：剪切板与应用列表 83.23 亿条、相册截图 1196.39 万条，超出必要范围。</span>
+      </div>
+      <div class="card">
+        <p class="eyebrow">数据安全法</p>
+        <h4 class="mt-s">数据处理不得危害国家安全</h4>
+        <p class="dim" style="font-size:13.5px">第 27 条　数据安全管理制度<br>第 36 条　向境外提供数据的限制</p>
+        <span class="anchor">本案：审查认定存在严重影响国家安全的数据处理活动，细节依法不公开。</span>
+      </div>
+      <div class="card">
+        <p class="eyebrow">个人信息保护法</p>
+        <h4 class="mt-s">最小必要、告知目的、敏感信息单独同意</h4>
+        <p class="dim" style="font-size:13.5px">第 6 条　最小必要　第 17 条　告知<br>第 28 条　敏感个人信息</p>
+        <span class="anchor">本案：未告知即分析出行意图 539.76 亿条；人脸 1.07 亿条、身份证号 5780.26 万条。</span>
+      </div>
+    </div>
+    <p class="dim" style="font-size:15px;margin-top:26px">三条法各管一层：网络运行秩序、数据安全、个人权益。三层同时被突破，处罚就落三次，罚的是三种不同的违法后果。</p>
+    <div class="deck-footer"><span class="dim2">条文以现行有效版本为准</span><span class="slide-number" data-current="10" data-total="16"></span></div>
+    <div class="notes">这页回答「为什么罚三次」。讲的时候不要念条号，先把每张卡的第一句话讲出来——收信息要必要、数据不能危害国家安全、个人信息要告知和单独同意，然后再指下面那行「本案」对应的事实。三层都破了，才有三次处罚。</div>
+  </section>
+
+  <!-- 10 监管链条 -->
+  <section class="slide" data-title="监管链条">
+    <p class="kicker">Enforcement · 两道程序</p>
+    <h2 class="h2">监管程序</h2>
+    <div class="grid g2 mt-m" style="align-items:start">
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div class="step"><div class="no">1</div><div><h4>网络安全审查</h4><p class="dim" style="margin:0;font-size:14px">依《国家安全法》《网络安全法》《网络安全审查办法》，查数据处理是否影响国家安全。</p></div></div>
+        <div class="step"><div class="no">2</div><div><h4>立案调查</h4><p class="dim" style="margin:0;font-size:14px">调查询问、技术取证、听取企业意见。</p></div></div>
+        <div class="step"><div class="no">3</div><div><h4>行政处罚</h4><p class="dim" style="margin:0;font-size:14px">三法并罚，企业与主管人员同时追责。</p></div></div>
+        <div class="step"><div class="no">4</div><div><h4>整改与退市</h4><p class="dim" style="margin:0;font-size:14px">全面自查；上市不足一年即启动退市。</p></div></div>
+      </div>
+      <div class="quote-card">
+        <p>「网络安全审查还发现，滴滴公司存在<strong>严重影响国家安全的数据处理活动</strong>，以及拒不履行监管部门的明确要求、阳奉阴违、恶意逃避监管等其他违法违规问题。因涉及国家安全，依法不公开。」</p>
+        <span class="src">—— 网信办答记者问，2022-07-21</span>
+      </div>
+    </div>
+    <div class="deck-footer"><span class="dim2">审查看国家安全，处罚看法定义务</span><span class="slide-number" data-current="11" data-total="16"></span></div>
+    <div class="notes">很多人只记得 80 亿，不知道前面还有一道网络安全审查。审查看的是国家安全，不公开；处罚看的是三法义务，公开。两道程序，两套逻辑。</div>
+  </section>
+
+  <!-- 11 伦理四视角 -->
+  <section class="slide" data-title="伦理分析">
+    <p class="kicker">Ethics</p>
+    <h2 class="h2">伦理分析</h2>
+    <div class="grid g2 mt-m anim-stagger-list" data-anim-target>
+      <div class="card">
+        <p class="eyebrow">功利主义</p>
+        <h4 class="mt-s">总收益真的更大吗</h4>
+        <p class="dim" style="font-size:14px">收益在财报，代价分摊到几亿人。两边不在一个账本上，加总算出的总量并不成立。</p>
+        <span class="anchor">本案：出行意图 539.76 亿条，换来更准的推荐与更少的补贴。</span>
+      </div>
+      <div class="card">
+        <p class="eyebrow">义务论</p>
+        <h4 class="mt-s">「同意」是真的同意吗</h4>
+        <p class="dim" style="font-size:14px">隐私政策几十页，权限与功能捆绑，不点就用不了。这次点击更接近形式。</p>
+        <span class="anchor">本案：41 款 App 共用一套授权流程。</span>
+      </div>
+      <div class="card">
+        <p class="eyebrow">责任伦理</p>
+        <h4 class="mt-s">一行代码的七年</h4>
+        <p class="dim" style="font-size:14px">后果在时间上滞后、空间上分散，判断不能只看当下好不好用。</p>
+        <span class="anchor">本案：「读取剪切板」写进 SDK，七年后是 83.23 亿条。</span>
+      </div>
+      <div class="card">
+        <p class="eyebrow">分配正义</p>
+        <h4 class="mt-s">谁承担风险</h4>
+        <p class="dim" style="font-size:14px">罗尔斯的差异原则要求制度安排改善最不利者的处境。</p>
+        <span class="anchor">本案：数据用户产、收益归平台、风险留用户。</span>
+      </div>
+    </div>
+    <div class="deck-footer"><span class="dim2">四种框架，各有盲区</span><span class="slide-number" data-current="12" data-total="16"></span></div>
+    <div class="notes">四种视角不必都同意，但要各自自洽。每格下面那行「本案」是关键——把框架落到这个案子的具体事实上，否则就是背概念。功利主义最容易算错，因为它把不同人的得失直接相加。</div>
+  </section>
+
+  <!-- 12 启示 -->
+  <section class="slide" data-title="启示">
+    <p class="kicker">Takeaways</p>
+    <h2 class="h2">启示</h2>
+    <div class="mt-m">
+      <div class="card mb-s"><h4>01　「能做」不等于「该做」</h4><p class="dim" style="margin:6px 0 0;font-size:14px">相册权限能申请，但相册里没有行程单。能力存在，不等于使用正当。</p></div>
+      <div class="card mb-s"><h4>02　合规前置到设计阶段</h4><p class="dim" style="margin:6px 0 0;font-size:14px">最小必要在需求评审时就能判断：这个功能最少要哪些数据，多要的砍掉。</p></div>
+      <div class="card mb-s"><h4>03　组织里要有说「不」的通道</h4><p class="dim" style="margin:6px 0 0;font-size:14px">处罚决定的原话是「阳奉阴违、恶意逃避监管」，指向的是组织执行方式。</p></div>
+      <div class="card"><h4>04　法律边界就是产品边界</h4><p class="dim" style="margin:6px 0 0;font-size:14px">三法在 2021 年补齐，2015 年开始的做法立刻变成违法。边界会移动。</p></div>
+    </div>
+    <div class="deck-footer"><span class="dim2">写给写代码的人</span><span class="slide-number" data-current="13" data-total="16"></span></div>
+    <div class="notes">这四条是我们组的总结。第一条最难，因为「能做」的诱惑每天都在；第四条最省钱——法律变了，产品边界跟着变。</div>
+  </section>
+
+  <!-- 13 小结 -->
+  <section class="slide" data-title="小结">
+    <p class="kicker">Conclusion</p>
+    <h2 class="h2">小结</h2>
+    <div class="mt-l">
+      <div class="step mb-m"><div class="no">1</div><div><h4>七年、16 项、647 亿条：规模本身就是结论</h4><p class="dim" style="margin:4px 0 0;font-size:15px">不存在某一处「写错了」，这是一套长期运行、无人复核的默认设置。</p></div></div>
+      <div class="step mb-m"><div class="no">2</div><div><h4>组织问题，技术补不上</h4><p class="dim" style="margin:4px 0 0;font-size:15px">合规没有否决权，评估排在上线之后，违规只是时间问题。</p></div></div>
+      <div class="step"><div class="no">3</div><div><h4>法律在 2021 年补齐，旧做法立刻失效</h4><p class="dim" style="margin:4px 0 0;font-size:15px">产品边界跟着法条移动，早一步算进需求，比事后补便宜得多。</p></div></div>
+    </div>
+    <div class="deck-footer"><span class="dim2">从事实到法律再到伦理，落回三条</span><span class="slide-number" data-current="14" data-total="16"></span></div>
+    <div class="notes">小结收三句：第一句说规模，第二句说组织，第三句说时间。这三句可以脱离 PPT 单独讲，也是我们这份报告的核心结论。</div>
+  </section>
+
+  <!-- 14 思考题 -->
+  <section class="slide" data-title="思考题">
+    <p class="kicker">Discussion</p>
+    <h2 class="h2">思考题</h2>
+    <div class="grid g3 mt-l anim-stagger-list" data-anim-target>
+      <div class="card"><h4>01</h4><p class="dim mt-s" style="font-size:14px">产品经理要读取剪切板提升推荐，说这是行业通行做法。你怎么判断、怎么行动？</p><span class="anchor">提示：区分「功能需要」与「转化率需要」。</span></div>
+      <div class="card"><h4>02</h4><p class="dim mt-s" style="font-size:14px">点「同意」等于同意一切吗？一揽子同意为何难构成有效同意？</p><span class="anchor">提示：最小必要、单独同意、敏感信息。</span></div>
+      <div class="card"><h4>03</h4><p class="dim mt-s" style="font-size:14px">企业罚 80 亿、个人各罚 100 万，合理吗？你会怎么改？</p><span class="anchor">提示：个人罚款额低，但追责信号强。</span></div>
+    </div>
+    <div class="deck-footer"><span class="dim2">留三分钟讨论</span><span class="slide-number" data-current="15" data-total="16"></span></div>
+    <div class="notes">收尾。三个问题里第三个最有争议，可以引导到「个人罚款低但信号强」这个角度。</div>
+  </section>
+
+  <!-- 15 致谢 -->
+  <section class="slide center tc" data-title="致谢">
+    <div>
+      <p class="kicker">Q &amp; A</p>
+      <h1 class="h1" style="font-size:130px;line-height:1;margin-bottom:16px">谢谢</h1>
+      <p class="lede" style="margin:0 auto 18px;max-width:56ch;font-size:15px">第 7 组　刘昊阳　刘科阳　鲁瑜　彭超　彭真昕</p>
+      <p class="lede" style="margin:0 auto;max-width:56ch;font-size:15px">资料来源：国家互联网信息办公室处罚决定与答记者问（2022-07-21）；网络安全审查办公室对滴滴启动审查的公告（2021-07-02）；下架「滴滴出行」App 的通报（2021-07-04）。图片来自人民网官方微博、网信中国公众号及公开资料。</p>
+    </div>
+    <div class="deck-footer"><span class="dim2">第 7 组 · 工程伦理与网络安全法</span><span class="slide-number" data-current="16" data-total="16"></span></div>
+    <div class="notes">结尾留在这里，不急着关页面。所有事实出自网信办公开文件，现场可以给出链接核对。欢迎提问。</div>
+  </section>
+
+</div>
+<script src="assets/runtime.js"></script>
+</body></html>
